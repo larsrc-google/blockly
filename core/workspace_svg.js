@@ -701,11 +701,9 @@ Blockly.WorkspaceSvg.prototype.moveDrag = function(e) {
 Blockly.WorkspaceSvg.prototype.onMouseWheel_ = function(e) {
   // TODO: Remove terminateDrag and compensate for coordinate skew during zoom.
   Blockly.terminateDrag_();
-  var delta = e.deltaY > 0 ? -1 : (e.deltaY < -0 ? 1 : 0);
-  if (delta != 0) {
+  if (e.deltaY != 0) {
     var position = Blockly.mouseToSvg(e, this.getParentSvg());
-    // TODO: Use deltaY value directly to handle touchpad zoom better.  
-    this.zoom(position.x, position.y, delta);
+    this.zoom(position.x, position.y, e.deltaY);
     e.preventDefault();
   }
 };
@@ -1041,9 +1039,9 @@ Blockly.WorkspaceSvg.prototype.markFocused = function() {
  * Zooming the blocks centered in (x, y) coordinate with zooming in or out.
  * @param {number} x X coordinate of center.
  * @param {number} y Y coordinate of center.
- * @param {number} type Type of zooming (-1 zooming out and 1 zooming in).
+ * @param {number} zoomAmount Amount of zooming (>0 zooming out and <0 zooming in).
  */
-Blockly.WorkspaceSvg.prototype.zoom = function(x, y, type) {
+Blockly.WorkspaceSvg.prototype.zoom = function(x, y, zoomAmount) {
   var speed = this.options.zoomOptions.scaleSpeed;
   var metrics = this.getMetrics();
   var center = this.getParentSvg().createSVGPoint();
@@ -1053,8 +1051,9 @@ Blockly.WorkspaceSvg.prototype.zoom = function(x, y, type) {
   x = center.x;
   y = center.y;
   var canvas = this.getCanvas();
-  // Scale factor.
-  var scaleChange = (type == 1) ? speed : 1 / speed;
+  // Scale factor.  Divided to get a reasonable zoom amount with both
+  // scroll wheels and touchpads.  
+  var scaleChange = 1 + zoomAmount * speed / 420;
   // Clamp scale within valid range.
   var newScale = this.scale * scaleChange;
   if (newScale > this.options.zoomOptions.maxScale) {
@@ -1084,7 +1083,8 @@ Blockly.WorkspaceSvg.prototype.zoomCenter = function(type) {
   var metrics = this.getMetrics();
   var x = metrics.viewWidth / 2;
   var y = metrics.viewHeight / 2;
-  this.zoom(x, y, type);
+  // Internal zoom function scales down to account for mousewheel zoom amounts. 
+  this.zoom(x, y, type * 42);
 };
 
 /**
